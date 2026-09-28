@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Top 10 Recycling Centers | Medal Ceremony</title>
+  <title>Recycling Champions | PET · Glass · Metal</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -19,6 +19,7 @@
     }
 
     .chart-container {
+      position: relative;
       background: rgba(10, 25, 35, 0.75);
       backdrop-filter: blur(6px);
       border-radius: 2rem;
@@ -35,21 +36,113 @@
       box-shadow: inset 0 0 60px rgba(0, 180, 255, 0.1);
     }
 
-    .title {
-      color: #c0e4ff;
-      font-weight: 300;
-      letter-spacing: 4px;
+    /* ===== MATERIAL TABS ===== */
+    .material-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
       margin-top: 20px;
-      text-transform: uppercase;
-      font-size: 0.85rem;
-      opacity: 0.8;
-      border-top: 1px solid rgba(120, 200, 255, 0.2);
       padding-top: 16px;
-      width: 100%;
-      text-align: center;
+      border-top: 1px solid rgba(120, 200, 255, 0.2);
     }
 
-    /* Loading / error state */
+    .material-tab {
+      background: rgba(20, 50, 70, 0.6);
+      border: 1px solid rgba(120, 200, 255, 0.25);
+      color: #a8d8ff;
+      padding: 10px 22px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      transition: all 0.28s ease;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .material-tab:hover:not(.active) {
+      background: rgba(40, 90, 130, 0.7);
+      border-color: rgba(160, 220, 255, 0.5);
+      color: #d0ecff;
+      transform: translateY(-2px);
+    }
+
+    .material-tab.active {
+      background: linear-gradient(135deg, rgba(76, 201, 240, 0.25), rgba(76, 201, 240, 0.1));
+      border-color: #4cc9f0;
+      color: #ffffff;
+      box-shadow: 0 0 20px rgba(76, 201, 240, 0.5), inset 0 0 10px rgba(76, 201, 240, 0.15);
+      transform: translateY(-2px);
+    }
+
+    /* ===== NAVIGATION CONTROLS ===== */
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 14px;
+    }
+
+    .nav-btn {
+      background: rgba(20, 50, 70, 0.8);
+      border: 1px solid rgba(120, 200, 255, 0.35);
+      color: #c0e4ff;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: rgba(40, 90, 130, 0.9);
+      border-color: rgba(160, 220, 255, 0.7);
+      transform: scale(1.08);
+      box-shadow: 0 6px 20px rgba(60, 160, 240, 0.35);
+    }
+
+    .nav-btn:active:not(:disabled) { transform: scale(0.95); }
+
+    .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .nav-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+      filter: drop-shadow(0 0 4px rgba(120, 200, 255, 0.5));
+    }
+
+    .nav-indicators {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .nav-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(120, 200, 255, 0.25);
+      border: 1px solid rgba(120, 200, 255, 0.4);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .nav-dot.active {
+      background: #4cc9f0;
+      box-shadow: 0 0 12px rgba(76, 201, 240, 0.8);
+      transform: scale(1.2);
+    }
+
+    .nav-dot:hover:not(.active) { background: rgba(120, 200, 255, 0.5); }
+
+    /* Status / errors */
     .status {
       fill: #a8d8ff;
       font-size: 16px;
@@ -72,11 +165,6 @@
       stroke-dasharray: 3 5;
     }
 
-    /* Medal colors */
-    .medal-1 { fill: #ffd700; } /* gold */
-    .medal-2 { fill: #c0c0c0; } /* silver */
-    .medal-3 { fill: #cd7f32; } /* bronze */
-
     .bar-label {
       fill: #ffffff;
       font-size: 14px;
@@ -92,7 +180,6 @@
     }
 
     .rank-badge {
-      fill: #0b1a2e;
       font-size: 16px;
       font-weight: 700;
       text-anchor: middle;
@@ -104,7 +191,18 @@
   <div class="chart-container">
     <svg id="medal-chart" viewBox="0 0 900 650" preserveAspectRatio="xMidYMid meet"></svg>
   </div>
-  <div class="title">✦ top 10 recycling centers · medal ceremony ✦</div>
+
+  <div class="material-tabs" id="material-tabs"></div>
+
+  <div class="nav-controls">
+    <button class="nav-btn" id="prev-btn" aria-label="Previous view">
+      <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+    </button>
+    <div class="nav-indicators" id="nav-indicators"></div>
+    <button class="nav-btn" id="next-btn" aria-label="Next view">
+      <svg viewBox="0 0 24 24"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg>
+    </button>
+  </div>
 
   <!-- D3.js from CDN -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -120,7 +218,38 @@
       const innerWidth = width - margin.left - margin.right;
       const innerHeight = height - margin.top - margin.bottom;
 
-      // Medal colors and styling
+      // ===== THREE MATERIAL VIEWS, EACH WITH ITS OWN CSV =====
+      const VIEWS = [
+        {
+          key: 'pet',
+          title: 'PET Plastic',
+          icon: '♻',
+          csvFile: 'recycle_pet.csv',
+          unitLabel: 'PET RECYCLED (kg)',
+          valueFormat: ',.0f',
+          accent: '#4cc9f0'
+        },
+        {
+          key: 'glass',
+          title: 'Glass',
+          icon: '🫙',
+          csvFile: 'recycle_glass.csv',
+          unitLabel: 'GLASS RECYCLED (kg)',
+          valueFormat: ',.0f',
+          accent: '#43aa8b'
+        },
+        {
+          key: 'metal',
+          title: 'Metal',
+          icon: '⚙',
+          csvFile: 'recycle_metal.csv',
+          unitLabel: 'METAL RECYCLED (kg)',
+          valueFormat: ',.0f',
+          accent: '#f9c74f'
+        }
+      ];
+
+      // Medal colors
       const medalColors = {
         1: { main: '#ffd700', glow: '#ffea8c', label: '🥇' },
         2: { main: '#c0c0c0', glow: '#e8e8e8', label: '🥈' },
@@ -128,429 +257,468 @@
       };
       const defaultColor = '#4cc9f0';
 
-      // CSV file path (same folder as HTML)
-      const CSV_FILE = 'recycling_centers.csv';
-
       // =========================================================
       // SETUP SVG
       // =========================================================
       const svg = d3.select('#medal-chart');
-
-      // Defs for gradients and filters
       const defs = svg.append('defs');
 
-      // Glow filter for bars
       const barGlow = defs.append('filter')
         .attr('id', 'barGlow')
-        .attr('x', '-50%')
-        .attr('y', '-50%')
-        .attr('width', '200%')
-        .attr('height', '200%');
+        .attr('x', '-50%').attr('y', '-50%')
+        .attr('width', '200%').attr('height', '200%');
       barGlow.append('feGaussianBlur').attr('stdDeviation', '6').attr('result', 'blur');
-      barGlow.append('feMerge')
-        .selectAll('feMergeNode')
-        .data(['blur', 'SourceGraphic'])
-        .enter()
-        .append('feMergeNode')
-        .attr('in', d => d);
+      barGlow.append('feMerge').selectAll('feMergeNode')
+        .data(['blur', 'SourceGraphic']).enter().append('feMergeNode').attr('in', d => d);
 
-      // Subtle glow for text
       const textGlow = defs.append('filter')
         .attr('id', 'textGlow')
-        .attr('x', '-30%')
-        .attr('y', '-30%')
-        .attr('width', '160%')
-        .attr('height', '160%');
+        .attr('x', '-30%').attr('y', '-30%')
+        .attr('width', '160%').attr('height', '160%');
       textGlow.append('feGaussianBlur').attr('stdDeviation', '2').attr('result', 'blur');
-      textGlow.append('feMerge')
-        .selectAll('feMergeNode')
-        .data(['blur', 'SourceGraphic'])
-        .enter()
-        .append('feMergeNode')
-        .attr('in', d => d);
+      textGlow.append('feMerge').selectAll('feMergeNode')
+        .data(['blur', 'SourceGraphic']).enter().append('feMergeNode').attr('in', d => d);
 
-      // Main group
-      const chartGroup = svg.append('g')
-        .attr('transform', `translate(${margin.left}, ${margin.top})`);
-
-      // Background decorative elements (stars / confetti feel)
-      const decorGroup = svg.append('g').attr('class', 'decor');
+      // Persistent starfield
+      const decorGroup = svg.append('g').attr('class', 'decor').attr('pointer-events', 'none');
       for (let i = 0; i < 60; i++) {
-        const x = Math.random() * width;
-        const y = Math.random() * height;
-        const r = Math.random() * 1.8 + 0.4;
         decorGroup.append('circle')
-          .attr('cx', x)
-          .attr('cy', y)
-          .attr('r', r)
+          .attr('cx', Math.random() * width)
+          .attr('cy', Math.random() * height)
+          .attr('r', Math.random() * 1.8 + 0.4)
           .attr('fill', '#b0e0ff')
           .attr('opacity', Math.random() * 0.25 + 0.04)
-          .attr('pointer-events', 'none');
+          .attr('data-base-op', function() { return this.getAttribute('opacity'); });
       }
 
-      // Status message (loading / error)
+      let starPhase = 0;
+      (function starPulse() {
+        starPhase += 0.03;
+        d3.selectAll('.decor circle').each(function() {
+          const el = d3.select(this);
+          const baseOp = +el.attr('data-base-op') || 0.1;
+          el.attr('opacity', baseOp + Math.sin(starPhase * 2 + Math.random()) * 0.05);
+        });
+        requestAnimationFrame(starPulse);
+      })();
+
+      // Persistent confetti
+      const confettiGroup = svg.append('g').attr('class', 'confetti').attr('pointer-events', 'none');
+
+      // Chart group (rebuilt on view change)
+      const chartGroup = svg.append('g')
+        .attr('class', 'chart-main')
+        .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+      // Status text
       const statusText = svg.append('text')
         .attr('class', 'status')
-        .attr('x', width / 2)
-        .attr('y', height / 2)
+        .attr('x', width / 2).attr('y', height / 2)
         .text('Loading recycling data...');
 
       // =========================================================
-      // LOAD CSV DATA
+      // NAVIGATION STATE
       // =========================================================
-      d3.csv(CSV_FILE)
-        .then(function(data) {
-          // Parse and validate
-          if (!data || data.length === 0) {
-            throw new Error('CSV file is empty or missing.');
-          }
+      let currentIndex = 0;
+      let isAnimating = false;
+      const dataCache = new Map();
 
-          // Auto-detect column names (flexible)
-          const sample = data[0];
-          const keys = Object.keys(sample);
-          
-          // Try to find name and value columns
-          const nameKey = keys.find(k =>
-            /name|center|centre|facility|site|location/i.test(k)
-          ) || keys[0];
-          
-          const valueKey = keys.find(k =>
-            /value|amount|total|recycl|tons|kg|weight|score/i.test(k)
-          ) || keys[1] || keys[0];
-
-          // Process: parse numbers, filter valid rows
-          let processed = data
-            .map(d => ({
-              name: (d[nameKey] || 'Unknown').toString().trim(),
-              value: +d[valueKey] || 0
-            }))
-            .filter(d => d.name && !isNaN(d.value) && d.value > 0);
-
-          if (processed.length === 0) {
-            throw new Error(`No valid rows found. Detected columns: "${nameKey}", "${valueKey}".`);
-          }
-
-          // Sort descending and take top 10
-          processed.sort((a, b) => b.value - a.value);
-          const top10 = processed.slice(0, 10);
-
-          // Compute max value for scale
-          const maxValue = d3.max(top10, d => d.value);
-
-          // =========================================================
-          // SCALES
-          // =========================================================
-          const xScale = d3.scaleLinear()
-            .domain([0, maxValue * 1.15])
-            .range([0, innerWidth]);
-
-          const yScale = d3.scaleBand()
-            .domain(top10.map(d => d.name))
-            .range([0, innerHeight])
-            .padding(0.22);
-
-          const barHeight = yScale.bandwidth();
-
-          // =========================================================
-          // DRAW AXES / GRID
-          // =========================================================
-          const gridGroup = chartGroup.append('g').attr('class', 'grid');
-          
-          const xTicks = xScale.ticks(6);
-          xTicks.forEach(tick => {
-            gridGroup.append('line')
-              .attr('class', 'grid-line')
-              .attr('x1', xScale(tick))
-              .attr('x2', xScale(tick))
-              .attr('y1', -20)
-              .attr('y2', innerHeight + 10);
-            
-            gridGroup.append('text')
-              .attr('x', xScale(tick))
-              .attr('y', innerHeight + 35)
-              .attr('text-anchor', 'middle')
-              .attr('class', 'axis-label')
-              .text(d3.format('.2s')(tick));
+      // =========================================================
+      // BUILD MATERIAL TABS
+      // =========================================================
+      const tabsContainer = d3.select('#material-tabs');
+      VIEWS.forEach((view, i) => {
+        tabsContainer.append('button')
+          .attr('class', 'material-tab' + (i === 0 ? ' active' : ''))
+          .attr('data-index', i)
+          .html(view.icon + ' &nbsp;' + view.title)
+          .on('click', () => {
+            if (!isAnimating && i !== currentIndex) goToView(i);
           });
+      });
 
-          // Axis title
-          chartGroup.append('text')
-            .attr('class', 'axis-label')
-            .attr('x', innerWidth / 2)
-            .attr('y', innerHeight + 55)
+      // =========================================================
+      // BUILD INDICATOR DOTS
+      // =========================================================
+      const navIndicators = d3.select('#nav-indicators');
+      VIEWS.forEach((view, i) => {
+        navIndicators.append('div')
+          .attr('class', 'nav-dot' + (i === 0 ? ' active' : ''))
+          .attr('data-index', i)
+          .attr('title', view.title)
+          .on('click', () => {
+            if (!isAnimating && i !== currentIndex) goToView(i);
+          });
+      });
+
+      const prevBtn = document.getElementById('prev-btn');
+      const nextBtn = document.getElementById('next-btn');
+
+      prevBtn.addEventListener('click', () => {
+        if (isAnimating) return;
+        goToView((currentIndex - 1 + VIEWS.length) % VIEWS.length);
+      });
+      nextBtn.addEventListener('click', () => {
+        if (isAnimating) return;
+        goToView((currentIndex + 1) % VIEWS.length);
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') prevBtn.click();
+        else if (e.key === 'ArrowRight') nextBtn.click();
+      });
+
+      // =========================================================
+      // DATA LOADING
+      // =========================================================
+      function loadData(viewIndex) {
+        const view = VIEWS[viewIndex];
+        if (dataCache.has(view.csvFile)) {
+          return Promise.resolve(dataCache.get(view.csvFile));
+        }
+        return d3.csv(view.csvFile).then(rawData => {
+          const processed = processData(rawData);
+          dataCache.set(view.csvFile, processed);
+          return processed;
+        });
+      }
+
+      function processData(data) {
+        if (!data || data.length === 0) {
+          throw new Error('CSV file is empty or missing.');
+        }
+        const keys = Object.keys(data[0]);
+        const nameKey = keys.find(k =>
+          /name|center|centre|facility|site|location|company/i.test(k)
+        ) || keys[0];
+        const valueKey = keys.find(k =>
+          /value|amount|total|recycl|tons|kg|weight|score/i.test(k)
+        ) || keys[1] || keys[0];
+
+        let processed = data
+          .map(d => ({
+            name: (d[nameKey] || 'Unknown').toString().trim(),
+            value: +d[valueKey] || 0
+          }))
+          .filter(d => d.name && !isNaN(d.value) && d.value > 0);
+
+        processed.sort((a, b) => b.value - a.value);
+        return processed.slice(0, 10);
+      }
+
+      // =========================================================
+      // RENDER VIEW
+      // =========================================================
+      function renderView(top10, viewConfig, animate = true) {
+        chartGroup.selectAll('*').remove();
+
+        const valueFormat = d3.format(viewConfig.valueFormat);
+        const maxValue = d3.max(top10, d => d.value);
+
+        const xScale = d3.scaleLinear()
+          .domain([0, maxValue * 1.15])
+          .range([0, innerWidth]);
+
+        const yScale = d3.scaleBand()
+          .domain(top10.map(d => d.name))
+          .range([0, innerHeight])
+          .padding(0.22);
+
+        const barHeight = yScale.bandwidth();
+
+        // ---- Grid & axis ----
+        const gridGroup = chartGroup.append('g').attr('class', 'grid');
+        const xTicks = xScale.ticks(6);
+        xTicks.forEach(tick => {
+          gridGroup.append('line')
+            .attr('class', 'grid-line')
+            .attr('x1', xScale(tick)).attr('x2', xScale(tick))
+            .attr('y1', -20).attr('y2', innerHeight + 10);
+          gridGroup.append('text')
+            .attr('x', xScale(tick))
+            .attr('y', innerHeight + 35)
             .attr('text-anchor', 'middle')
-            .text('TOTAL RECYCLED (units)');
+            .attr('class', 'axis-label')
+            .text(d3.format('.2s')(tick));
+        });
 
-          // =========================================================
-          // DRAW BARS (with animation)
-          // =========================================================
-          const barsGroup = chartGroup.append('g').attr('class', 'bars');
+        chartGroup.append('text')
+          .attr('class', 'axis-label')
+          .attr('x', innerWidth / 2)
+          .attr('y', innerHeight + 55)
+          .attr('text-anchor', 'middle')
+          .text(viewConfig.unitLabel);
 
-          top10.forEach((d, i) => {
-            const rank = i + 1;
-            const isMedal = rank <= 3;
-            const color = isMedal ? medalColors[rank].main : defaultColor;
-            const glowColor = isMedal ? medalColors[rank].glow : '#4cc9f0';
+        // ---- Bars ----
+        const barsGroup = chartGroup.append('g').attr('class', 'bars');
 
-            const barY = yScale(d.name);
+        top10.forEach((d, i) => {
+          const rank = i + 1;
+          const isMedal = rank <= 3;
+          const color = isMedal ? medalColors[rank].main : viewConfig.accent;
+          const glowColor = isMedal ? medalColors[rank].glow : viewConfig.accent;
+          const barY = yScale(d.name);
 
-            // Create a group per bar for easier animation
-            const barGroup = barsGroup.append('g')
-              .attr('class', `bar-group bar-${rank}`)
-              .attr('transform', `translate(0, ${barY})`);
+          const barGroup = barsGroup.append('g')
+            .attr('class', `bar-group bar-${rank}`)
+            .attr('transform', `translate(0, ${barY})`);
 
-            // Background track (subtle)
-            barGroup.append('rect')
-              .attr('x', 0)
-              .attr('y', 0)
-              .attr('width', innerWidth)
-              .attr('height', barHeight)
-              .attr('rx', barHeight / 2)
-              .attr('fill', 'rgba(80, 140, 180, 0.08)');
+          // Track
+          barGroup.append('rect')
+            .attr('x', 0).attr('y', 0)
+            .attr('width', innerWidth).attr('height', barHeight)
+            .attr('rx', barHeight / 2)
+            .attr('fill', 'rgba(80, 140, 180, 0.08)');
 
-            // Animated bar (starts at width 0)
-            const bar = barGroup.append('rect')
-              .attr('class', 'bar-rect')
-              .attr('x', 0)
-              .attr('y', 0)
-              .attr('width', 0)  // will animate
-              .attr('height', barHeight)
-              .attr('rx', barHeight / 2)
-              .attr('fill', color)
-              .attr('opacity', 0.92)
-              .attr('filter', 'url(#barGlow)')
-              .style('transform-origin', 'left center');
+          const finalWidth = Math.max(8, xScale(d.value));
 
-            // Animate bar growth with stagger
-            const finalWidth = Math.max(8, xScale(d.value));
+          // Animated bar
+          const bar = barGroup.append('rect')
+            .attr('x', 0).attr('y', 0)
+            .attr('width', animate ? 0 : finalWidth)
+            .attr('height', barHeight)
+            .attr('rx', barHeight / 2)
+            .attr('fill', color)
+            .attr('opacity', 0.92)
+            .attr('filter', 'url(#barGlow)');
+
+          // Pulsing stroke
+          const pulseRect = barGroup.append('rect')
+            .attr('x', 0).attr('y', 0)
+            .attr('width', animate ? 0 : finalWidth)
+            .attr('height', barHeight)
+            .attr('rx', barHeight / 2)
+            .attr('fill', 'none')
+            .attr('stroke', glowColor)
+            .attr('stroke-width', 1.5)
+            .attr('opacity', 0.5);
+
+          pulseRect.node().__finalWidth = finalWidth;
+          pulseRect.node().__baseOpacity = isMedal ? 0.7 : 0.4;
+          pulseRect.node().__delayOffset = i * 0.7;
+
+          if (animate) {
             bar.transition()
-              .delay(300 + i * 130)
-              .duration(1100)
-              .ease(d3.easeCubicOut)
-              .attr('width', finalWidth);
-
-            // Pulsing glow overlay on the bar
-            const pulseRect = barGroup.append('rect')
-              .attr('x', 0)
-              .attr('y', 0)
-              .attr('width', 0)
-              .attr('height', barHeight)
-              .attr('rx', barHeight / 2)
-              .attr('fill', 'none')
-              .attr('stroke', glowColor)
-              .attr('stroke-width', 1.5)
-              .attr('opacity', 0);
-
+              .delay(150 + i * 110).duration(900)
+              .ease(d3.easeCubicOut).attr('width', finalWidth);
             pulseRect.transition()
-              .delay(300 + i * 130)
-              .duration(1100)
-              .ease(d3.easeCubicOut)
-              .attr('width', finalWidth);
+              .delay(150 + i * 110).duration(900)
+              .ease(d3.easeCubicOut).attr('width', finalWidth);
+          }
 
-            // Set up a continuous pulse animation using requestAnimationFrame
-            // We'll store the final width on the element for the pulse loop
-            pulseRect.node().__finalWidth = finalWidth;
-            pulseRect.node().__baseOpacity = isMedal ? 0.7 : 0.4;
-            pulseRect.node().__delayOffset = i * 0.7;
+          // Rank badge
+          const badgeRadius = barHeight * 0.38;
+          barGroup.append('circle')
+            .attr('cx', -badgeRadius - 12)
+            .attr('cy', barHeight / 2)
+            .attr('r', badgeRadius)
+            .attr('fill', isMedal ? medalColors[rank].main : 'rgba(120, 180, 220, 0.25)')
+            .attr('stroke', isMedal ? '#fff' : 'rgba(180, 220, 255, 0.4)')
+            .attr('stroke-width', isMedal ? 2 : 1);
 
-            // Rank badge circle (medal indicator)
-            const badgeRadius = barHeight * 0.38;
-            barGroup.append('circle')
-              .attr('cx', -badgeRadius - 12)
-              .attr('cy', barHeight / 2)
-              .attr('r', badgeRadius)
-              .attr('fill', isMedal ? medalColors[rank].main : 'rgba(120, 180, 220, 0.25)')
-              .attr('stroke', isMedal ? '#fff' : 'rgba(180, 220, 255, 0.4)')
-              .attr('stroke-width', isMedal ? 2 : 1);
+          barGroup.append('text')
+            .attr('class', 'rank-badge')
+            .attr('x', -badgeRadius - 12)
+            .attr('y', barHeight / 2)
+            .attr('font-size', barHeight * 0.42)
+            .attr('fill', isMedal ? '#0b1a2e' : '#a8d8ff')
+            .text(rank);
 
-            // Rank number inside badge
-            barGroup.append('text')
-              .attr('class', 'rank-badge')
-              .attr('x', -badgeRadius - 12)
-              .attr('y', barHeight / 2)
-              .attr('font-size', barHeight * 0.42)
-              .attr('fill', isMedal ? '#0b1a2e' : '#a8d8ff')
-              .text(rank);
-
-            // Medal emoji for top 3 (placed to the right of the bar)
-            if (isMedal) {
-              barGroup.append('text')
-                .attr('x', finalWidth + 12)
-                .attr('y', barHeight / 2 + 2)
-                .attr('font-size', barHeight * 0.75)
-                .attr('dominant-baseline', 'central')
-                .attr('opacity', 0)
-                .text(medalColors[rank].label)
-                .transition()
-                .delay(1400 + i * 130)
-                .duration(400)
+          // Medal emoji
+          if (isMedal) {
+            const medalText = barGroup.append('text')
+              .attr('x', finalWidth + 12)
+              .attr('y', barHeight / 2 + 2)
+              .attr('font-size', barHeight * 0.75)
+              .attr('dominant-baseline', 'central')
+              .attr('opacity', animate ? 0 : 1)
+              .text(medalColors[rank].label);
+            if (animate) {
+              medalText.transition()
+                .delay(1000 + i * 110).duration(400)
                 .attr('opacity', 1);
             }
+          }
 
-            // Center name label (inside or left of bar)
-            barGroup.append('text')
-              .attr('class', 'bar-label')
-              .attr('x', -badgeRadius * 2 - 24)
-              .attr('y', barHeight / 2 + 1)
-              .attr('text-anchor', 'end')
-              .attr('dominant-baseline', 'central')
-              .text(d.name.length > 22 ? d.name.substring(0, 20) + '…' : d.name)
-              .style('opacity', 0)
-              .transition()
-              .delay(300 + i * 130)
-              .duration(600)
-              .style('opacity', 1);
+          // Name label
+          barGroup.append('text')
+            .attr('class', 'bar-label')
+            .attr('x', -badgeRadius * 2 - 24)
+            .attr('y', barHeight / 2 + 1)
+            .attr('text-anchor', 'end')
+            .attr('dominant-baseline', 'central')
+            .text(d.name.length > 22 ? d.name.substring(0, 20) + '…' : d.name);
 
-            // Value label (animated counting up)
-            const valueLabel = barGroup.append('text')
-              .attr('class', 'value-label')
-              .attr('x', finalWidth + (isMedal ? 45 : 12))  // shift if medal emoji present
-              .attr('y', barHeight / 2 + 1)
-              .attr('dominant-baseline', 'central')
-              .attr('text-anchor', 'start')
-              .attr('filter', 'url(#textGlow)')
-              .style('opacity', 0);
+          // Value label with count-up
+          const valueLabel = barGroup.append('text')
+            .attr('class', 'value-label')
+            .attr('x', finalWidth + (isMedal ? 45 : 12))
+            .attr('y', barHeight / 2 + 1)
+            .attr('dominant-baseline', 'central')
+            .attr('text-anchor', 'start')
+            .attr('filter', 'url(#textGlow)')
+            .text(animate ? '' : valueFormat(d.value));
 
-            // Count-up animation
+          if (animate) {
             valueLabel.transition()
-              .delay(400 + i * 130)
-              .duration(1200)
+              .delay(300 + i * 110).duration(1000)
               .ease(d3.easeCubicOut)
-              .style('opacity', 1)
               .tween('text', function() {
                 const interpolator = d3.interpolateNumber(0, d.value);
                 return function(t) {
-                  d3.select(this).text(d3.format(',.0f')(interpolator(t)));
+                  d3.select(this).text(valueFormat(interpolator(t)));
                 };
               });
-          });
-
-          // =========================================================
-          // CONTINUOUS PULSE ANIMATION LOOP
-          // =========================================================
-          let pulsePhase = 0;
-          function pulseLoop() {
-            pulsePhase += 0.03;
-
-            // Pulse the stroke rects
-            d3.selectAll('.bars rect[stroke]').each(function() {
-              const el = d3.select(this);
-              const finalW = this.__finalWidth || 0;
-              const baseOp = this.__baseOpacity || 0.4;
-              const offset = this.__delayOffset || 0;
-              const pulse = Math.sin(pulsePhase + offset) * 0.5 + 0.5;
-              el.attr('opacity', baseOp * pulse * 0.8 + 0.1);
-              el.attr('stroke-width', 1.2 + pulse * 1.2);
-            });
-
-            // Subtle background star twinkle
-            d3.selectAll('.decor circle').each(function() {
-              const el = d3.select(this);
-              const baseOp = +el.attr('data-base-op') || 0.1;
-              el.attr('opacity', baseOp + Math.sin(pulsePhase * 2 + Math.random()) * 0.05);
-            });
-
-            requestAnimationFrame(pulseLoop);
           }
-
-          // Store base opacity for stars
-          d3.selectAll('.decor circle').each(function() {
-            d3.select(this).attr('data-base-op', this.getAttribute('opacity'));
-          });
-
-          // Start pulse loop
-          pulseLoop();
-
-          // Remove status message
-          statusText.remove();
-
-          // Add a celebratory title
-          chartGroup.append('text')
-            .attr('x', innerWidth / 2)
-            .attr('y', -55)
-            .attr('text-anchor', 'middle')
-            .attr('fill', '#c0e4ff')
-            .attr('font-size', '18px')
-            .attr('font-weight', '300')
-            .attr('letter-spacing', '4px')
-            .style('opacity', 0)
-            .text('★ TOP 10 ΠΟΛΥΚΕΝΤΡΑ ΑΝΑΚΥΚΛΩΣΗΣ PET  ★')
-            .transition()
-            .delay(200)
-            .duration(800)
-            .style('opacity', 0.9);
-
-          // Subtle confetti-like particles falling
-          startConfetti();
-        })
-        .catch(function(error) {
-          console.error('Error loading CSV:', error);
-          statusText
-            .attr('fill', '#ff8080')
-            .text('⚠ Could not load "' + CSV_FILE + '". Check console for details.');
-          
-          // Add a helpful hint
-          svg.append('text')
-            .attr('x', width / 2)
-            .attr('y', height / 2 + 35)
-            .attr('class', 'status')
-            .attr('fill', '#a8d8ff')
-            .attr('font-size', '13px')
-            .attr('opacity', 0.7)
-            .text('Place recycling_centers.csv in the same folder as this HTML file.');
         });
 
-      // =========================================================
-      // CONFETTI ANIMATION (medal ceremony feel)
-      // =========================================================
-      function startConfetti() {
-        const confettiGroup = svg.append('g')
-          .attr('class', 'confetti')
-          .attr('pointer-events', 'none');
+        // ---- Title ----
+        chartGroup.append('text')
+          .attr('x', innerWidth / 2)
+          .attr('y', -55)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#c0e4ff')
+          .attr('font-size', '18px')
+          .attr('font-weight', '300')
+          .attr('letter-spacing', '4px')
+          .text('★ ' + viewConfig.title.toUpperCase() + ' ★')
+          .style('opacity', animate ? 0 : 0.9)
+          .transition()
+          .delay(animate ? 150 : 0).duration(600)
+          .style('opacity', 0.9);
 
+        startPulseLoop();
+      }
+
+      // =========================================================
+      // PULSE LOOP
+      // =========================================================
+      let pulsePhase = 0;
+      let pulseRAF = null;
+      function startPulseLoop() {
+        if (pulseRAF) cancelAnimationFrame(pulseRAF);
+        pulsePhase = 0;
+        function loop() {
+          pulsePhase += 0.03;
+          d3.selectAll('.bars rect[stroke]').each(function() {
+            const el = d3.select(this);
+            const finalW = this.__finalWidth;
+            if (finalW === undefined) return;
+            const baseOp = this.__baseOpacity || 0.4;
+            const offset = this.__delayOffset || 0;
+            const pulse = Math.sin(pulsePhase + offset) * 0.5 + 0.5;
+            el.attr('opacity', baseOp * pulse * 0.8 + 0.1);
+            el.attr('stroke-width', 1.2 + pulse * 1.2);
+          });
+          pulseRAF = requestAnimationFrame(loop);
+        }
+        loop();
+      }
+
+      // =========================================================
+      // CONFETTI
+      // =========================================================
+      function spawnConfetti() {
         const confettiColors = ['#ffd700', '#c0c0c0', '#cd7f32', '#4cc9f0', '#f72585', '#43aa8b'];
-
-        for (let i = 0; i < 40; i++) {
+        for (let i = 0; i < 30; i++) {
           const startX = Math.random() * width;
           const startY = -20 - Math.random() * 100;
           const size = Math.random() * 6 + 3;
           const color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
           const rotation = Math.random() * 360;
-          const duration = 4000 + Math.random() * 4000;
-          const delay = Math.random() * 3000;
+          const duration = 4500 + Math.random() * 3500;
+          const delay = Math.random() * 4000;
 
           const particle = confettiGroup.append('rect')
-            .attr('x', startX)
-            .attr('y', startY)
-            .attr('width', size)
-            .attr('height', size * 0.6)
-            .attr('fill', color)
-            .attr('opacity', 0.85)
+            .attr('x', startX).attr('y', startY)
+            .attr('width', size).attr('height', size * 0.6)
+            .attr('fill', color).attr('opacity', 0.85)
             .attr('rx', 1)
             .attr('transform', `rotate(${rotation}, ${startX}, ${startY})`);
 
-          function fall() {
+          (function fall() {
             particle
-              .transition()
-              .delay(delay)
-              .duration(duration)
+              .transition().delay(delay).duration(duration)
               .ease(d3.easeLinear)
               .attr('y', height + 40)
-              .attr('transform', `rotate(${rotation + 360 * 2}, ${startX}, ${startY + 600})`)
+              .attr('transform', `rotate(${rotation + 720}, ${startX}, ${startY + 600})`)
               .attr('opacity', 0)
               .on('end', function() {
-                // Reset and loop
-                particle
-                  .attr('y', startY - Math.random() * 200)
-                  .attr('opacity', 0.85)
-                  .transition()
-                  .duration(0)
+                particle.attr('y', startY - Math.random() * 200).attr('opacity', 0.85)
+                  .transition().duration(0)
                   .on('end', fall);
               });
-          }
-          fall();
+          })();
         }
       }
+      spawnConfetti();
+
+      // =========================================================
+      // UI UPDATE
+      // =========================================================
+      function updateNavUI() {
+        d3.selectAll('.nav-dot')
+          .classed('active', function() {
+            return +this.getAttribute('data-index') === currentIndex;
+          });
+        d3.selectAll('.material-tab')
+          .classed('active', function() {
+            return +this.getAttribute('data-index') === currentIndex;
+          });
+      }
+
+      // =========================================================
+      // VIEW SWITCHING
+      // =========================================================
+      function goToView(newIndex) {
+        if (isAnimating || newIndex === currentIndex) return;
+        isAnimating = true;
+
+        chartGroup.transition()
+          .duration(300)
+          .style('opacity', 0)
+          .on('end', () => {
+            loadData(newIndex)
+              .then(top10 => {
+                currentIndex = newIndex;
+                updateNavUI();
+                chartGroup.style('opacity', 0);
+                renderView(top10, VIEWS[newIndex], true);
+                chartGroup.transition().duration(400).style('opacity', 1);
+                statusText.style('opacity', 0);
+                setTimeout(() => { isAnimating = false; }, 700);
+              })
+              .catch(err => {
+                console.error('Error loading view:', err);
+                statusText
+                  .attr('fill', '#ff8080')
+                  .style('opacity', 1)
+                  .text('⚠ Could not load ' + VIEWS[newIndex].csvFile);
+                chartGroup.transition().duration(400).style('opacity', 1);
+                setTimeout(() => { isAnimating = false; }, 700);
+              });
+          });
+      }
+
+      // =========================================================
+      // INITIAL LOAD
+      // =========================================================
+      loadData(0)
+        .then(top10 => {
+          statusText.remove();
+          renderView(top10, VIEWS[0], true);
+        })
+        .catch(err => {
+          console.error('Error loading initial view:', err);
+          statusText
+            .attr('fill', '#ff8080')
+            .text('⚠ Could not load ' + VIEWS[0].csvFile + '. Check console.');
+          svg.append('text')
+            .attr('x', width / 2).attr('y', height / 2 + 35)
+            .attr('class', 'status').attr('fill', '#a8d8ff')
+            .attr('font-size', '13px').attr('opacity', 0.7)
+            .text('Place recycle_pet.csv, recycle_glass.csv, recycle_metal.csv in the same folder.');
+        });
     })();
   </script>
 </body>

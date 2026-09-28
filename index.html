@@ -3,13 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Animated Graph | D3.js Force Simulation</title>
+  <title>Top 10 Recycling Centers | Medal Ceremony</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       background: linear-gradient(145deg, #0b1a2e 0%, #1a2f3f 100%);
@@ -19,20 +15,21 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      padding: 1rem;
     }
 
-    .graph-container {
+    .chart-container {
       background: rgba(10, 25, 35, 0.75);
       backdrop-filter: blur(6px);
       border-radius: 2rem;
-      padding: 1rem;
+      padding: 1.5rem;
       box-shadow: 0 25px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
     }
 
     svg {
       display: block;
       width: 900px;
-      height: 600px;
+      height: 650px;
       border-radius: 1.5rem;
       background: radial-gradient(circle at 30% 20%, #142a3a, #051016);
       box-shadow: inset 0 0 60px rgba(0, 180, 255, 0.1);
@@ -40,11 +37,11 @@
 
     .title {
       color: #c0e4ff;
-      font-weight: 400;
-      letter-spacing: 2px;
+      font-weight: 300;
+      letter-spacing: 4px;
       margin-top: 20px;
       text-transform: uppercase;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       opacity: 0.8;
       border-top: 1px solid rgba(120, 200, 255, 0.2);
       padding-top: 16px;
@@ -52,375 +49,508 @@
       text-align: center;
     }
 
-    .tooltip {
-      position: absolute;
-      background: #0f2636;
-      color: #d0ecff;
-      padding: 6px 14px;
-      border-radius: 30px;
-      font-size: 0.85rem;
+    /* Loading / error state */
+    .status {
+      fill: #a8d8ff;
+      font-size: 16px;
+      text-anchor: middle;
+      font-family: 'Segoe UI', sans-serif;
+      letter-spacing: 1px;
+    }
+
+    /* Axis labels */
+    .axis-label {
+      fill: #8fb8d4;
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    .grid-line {
+      stroke: rgba(120, 200, 255, 0.08);
+      stroke-dasharray: 3 5;
+    }
+
+    /* Medal colors */
+    .medal-1 { fill: #ffd700; } /* gold */
+    .medal-2 { fill: #c0c0c0; } /* silver */
+    .medal-3 { fill: #cd7f32; } /* bronze */
+
+    .bar-label {
+      fill: #ffffff;
+      font-size: 14px;
       font-weight: 500;
       letter-spacing: 0.5px;
-      pointer-events: none;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7), 0 0 0 1px #2b6380;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      white-space: nowrap;
-      z-index: 100;
+    }
+
+    .value-label {
+      fill: #d0ecff;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .rank-badge {
+      fill: #0b1a2e;
+      font-size: 16px;
+      font-weight: 700;
+      text-anchor: middle;
+      dominant-baseline: central;
     }
   </style>
 </head>
 <body>
-  <div class="graph-container">
-    <svg id="animated-graph" viewBox="0 0 900 600" preserveAspectRatio="xMidYMid meet"></svg>
+  <div class="chart-container">
+    <svg id="medal-chart" viewBox="0 0 900 650" preserveAspectRatio="xMidYMid meet"></svg>
   </div>
-  <div class="title">✦ interactive force graph · nodes pulse & drift ✦</div>
+  <div class="title">✦ top 10 recycling centers · medal ceremony ✦</div>
 
   <!-- D3.js from CDN -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
 
   <script>
     (function() {
-      // ----- CONFIGURATION -----
+      // =========================================================
+      // CONFIGURATION
+      // =========================================================
       const width = 900;
-      const height = 600;
-      const centerX = width / 2;
-      const centerY = height / 2;
+      const height = 650;
+      const margin = { top: 100, right: 150, bottom: 60, left: 220 };
+      const innerWidth = width - margin.left - margin.right;
+      const innerHeight = height - margin.top - margin.bottom;
 
-      // Color palette for nodes (vibrant neon / tech)
-      const colors = [
-        '#4cc9f0', // cyan
-        '#f72585', // pink
-        '#b5179e', // purple
-        '#4895ef', // blue
-        '#f9c74f', // yellow
-        '#43aa8b', // green
-        '#f9844a', // orange
-        '#577590', // slate
-      ];
+      // Medal colors and styling
+      const medalColors = {
+        1: { main: '#ffd700', glow: '#ffea8c', label: '🥇' },
+        2: { main: '#c0c0c0', glow: '#e8e8e8', label: '🥈' },
+        3: { main: '#cd7f32', glow: '#e8a868', label: '🥉' }
+      };
+      const defaultColor = '#4cc9f0';
 
-      // ----- DATA: 18 nodes with varied radius & group -----
-      const nodes = [
-        { id: 'A', radius: 22, group: 0, label: 'Alpha' },
-        { id: 'B', radius: 18, group: 1, label: 'Beta' },
-        { id: 'C', radius: 20, group: 2, label: 'Gamma' },
-        { id: 'D', radius: 16, group: 3, label: 'Delta' },
-        { id: 'E', radius: 24, group: 4, label: 'Epsilon' },
-        { id: 'F', radius: 19, group: 5, label: 'Zeta' },
-        { id: 'G', radius: 17, group: 6, label: 'Eta' },
-        { id: 'H', radius: 21, group: 7, label: 'Theta' },
-        { id: 'I', radius: 15, group: 0, label: 'Iota' },
-        { id: 'J', radius: 23, group: 1, label: 'Kappa' },
-        { id: 'K', radius: 18, group: 2, label: 'Lambda' },
-        { id: 'L', radius: 20, group: 3, label: 'Mu' },
-        { id: 'M', radius: 16, group: 4, label: 'Nu' },
-        { id: 'N', radius: 22, group: 5, label: 'Xi' },
-        { id: 'O', radius: 19, group: 6, label: 'Omicron' },
-        { id: 'P', radius: 17, group: 7, label: 'Pi' },
-        { id: 'Q', radius: 21, group: 0, label: 'Rho' },
-        { id: 'R', radius: 18, group: 1, label: 'Sigma' },
-      ];
+      // CSV file path (same folder as HTML)
+      const CSV_FILE = 'recycling_centers.csv';
 
-      // Links: connect nodes in a semi-random mesh with some structure
-      const links = [
-        { source: 'A', target: 'B' }, { source: 'A', target: 'C' }, { source: 'A', target: 'D' },
-        { source: 'B', target: 'E' }, { source: 'B', target: 'F' }, { source: 'C', target: 'G' },
-        { source: 'C', target: 'H' }, { source: 'D', target: 'I' }, { source: 'D', target: 'J' },
-        { source: 'E', target: 'K' }, { source: 'E', target: 'L' }, { source: 'F', target: 'M' },
-        { source: 'F', target: 'N' }, { source: 'G', target: 'O' }, { source: 'G', target: 'P' },
-        { source: 'H', target: 'Q' }, { source: 'H', target: 'R' }, { source: 'I', target: 'J' },
-        { source: 'J', target: 'K' }, { source: 'K', target: 'L' }, { source: 'L', target: 'M' },
-        { source: 'M', target: 'N' }, { source: 'N', target: 'O' }, { source: 'O', target: 'P' },
-        { source: 'P', target: 'Q' }, { source: 'Q', target: 'R' }, { source: 'R', target: 'A' },
-        { source: 'B', target: 'G' }, { source: 'C', target: 'F' }, { source: 'E', target: 'H' },
-        { source: 'I', target: 'M' }, { source: 'J', target: 'N' }, { source: 'K', target: 'O' },
-        { source: 'L', target: 'P' }, { source: 'Q', target: 'A' }, { source: 'D', target: 'R' }
-      ];
+      // =========================================================
+      // SETUP SVG
+      // =========================================================
+      const svg = d3.select('#medal-chart');
 
-      // Map node ids to node objects for quick lookup
-      const nodeMap = new Map(nodes.map(d => [d.id, d]));
-
-      // ----- SETUP SVG & LAYERS -----
-      const svg = d3.select('#animated-graph');
-
-      // Add a background glow filter
+      // Defs for gradients and filters
       const defs = svg.append('defs');
-      
-      // Soft glow filter for links
-      const linkGlow = defs.append('filter')
-        .attr('id', 'linkGlow')
-        .attr('x', '-30%')
-        .attr('y', '-30%')
-        .attr('width', '160%')
-        .attr('height', '160%');
-      linkGlow.append('feGaussianBlur')
-        .attr('stdDeviation', '3.5')
-        .attr('result', 'blur');
-      linkGlow.append('feMerge')
-        .selectAll('feMergeNode')
-        .data(['blur', 'SourceGraphic'])
-        .enter()
-        .append('feMergeNode')
-        .attr('in', d => d);
 
-      // Glow for nodes
-      const nodeGlow = defs.append('filter')
-        .attr('id', 'nodeGlow')
+      // Glow filter for bars
+      const barGlow = defs.append('filter')
+        .attr('id', 'barGlow')
         .attr('x', '-50%')
         .attr('y', '-50%')
         .attr('width', '200%')
         .attr('height', '200%');
-      nodeGlow.append('feGaussianBlur')
-        .attr('stdDeviation', '7')
-        .attr('result', 'blur');
-      nodeGlow.append('feMerge')
+      barGlow.append('feGaussianBlur').attr('stdDeviation', '6').attr('result', 'blur');
+      barGlow.append('feMerge')
         .selectAll('feMergeNode')
         .data(['blur', 'SourceGraphic'])
         .enter()
         .append('feMergeNode')
         .attr('in', d => d);
 
-      // Groups for layering
-      const linkGroup = svg.append('g').attr('class', 'links');
-      const nodeGroup = svg.append('g').attr('class', 'nodes');
-      const labelGroup = svg.append('g').attr('class', 'labels');
-
-      // ----- FORCE SIMULATION with animation-friendly settings -----
-      const simulation = d3.forceSimulation(nodes)
-        .force('link', d3.forceLink(links)
-          .id(d => d.id)
-          .distance(d => {
-            // Vary link distance based on node radii for organic look
-            const src = nodeMap.get(d.source.id || d.source);
-            const tgt = nodeMap.get(d.target.id || d.target);
-            if (src && tgt) {
-              return 120 + (src.radius + tgt.radius) * 1.2;
-            }
-            return 150;
-          })
-          .strength(0.6)
-        )
-        .force('charge', d3.forceManyBody()
-          .strength(d => -180 - d.radius * 7)  // stronger repulsion for bigger nodes
-          .distanceMax(400)
-        )
-        .force('center', d3.forceCenter(centerX, centerY))
-        .force('collision', d3.forceCollide()
-          .radius(d => d.radius * 2.2)   // generous collision to keep them apart
-          .strength(0.9)
-          .iterations(2)
-        )
-        // slight x/y forces to keep them from drifting too far
-        .force('x', d3.forceX(centerX).strength(0.03))
-        .force('y', d3.forceY(centerY).strength(0.03))
-        .alphaDecay(0.014)        // slower decay => longer animation at start
-        .velocityDecay(0.32)
-        .alphaMin(0.001)
-        .on('tick', ticked);
-
-      // ----- DRAW LINKS (as glowing lines) -----
-      const linkElements = linkGroup.selectAll('line')
-        .data(links)
+      // Subtle glow for text
+      const textGlow = defs.append('filter')
+        .attr('id', 'textGlow')
+        .attr('x', '-30%')
+        .attr('y', '-30%')
+        .attr('width', '160%')
+        .attr('height', '160%');
+      textGlow.append('feGaussianBlur').attr('stdDeviation', '2').attr('result', 'blur');
+      textGlow.append('feMerge')
+        .selectAll('feMergeNode')
+        .data(['blur', 'SourceGraphic'])
         .enter()
-        .append('line')
-        .attr('stroke', '#7aa9c4')
-        .attr('stroke-opacity', 0.45)
-        .attr('stroke-width', d => {
-          const src = nodeMap.get(d.source.id || d.source);
-          const tgt = nodeMap.get(d.target.id || d.target);
-          return 1.2 + (src.radius + tgt.radius) * 0.05;
-        })
-        .attr('filter', 'url(#linkGlow)');
+        .append('feMergeNode')
+        .attr('in', d => d);
 
-      // ----- DRAW NODES (circles with glow and varying colors) -----
-      const nodeElements = nodeGroup.selectAll('circle')
-        .data(nodes)
-        .enter()
-        .append('circle')
-        .attr('r', d => d.radius)
-        .attr('fill', d => colors[d.group % colors.length])
-        .attr('stroke', '#ffffff')
-        .attr('stroke-width', 1.2)
-        .attr('stroke-opacity', 0.5)
-        .attr('filter', 'url(#nodeGlow)')
-        .style('cursor', 'pointer')
-        .call(d3.drag()
-          .on('start', dragStarted)
-          .on('drag', dragged)
-          .on('end', dragEnded)
-        )
-        .on('mouseover', function(event, d) {
-          // highlight node and its links
-          d3.select(this)
-            .transition()
-            .duration(200)
-            .attr('r', d.radius * 1.35)
-            .attr('stroke-width', 2.5)
-            .attr('stroke-opacity', 0.9);
+      // Main group
+      const chartGroup = svg.append('g')
+        .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
-          // Highlight connected links
-          linkElements
-            .transition()
-            .duration(200)
-            .attr('stroke-opacity', l => 
-              (l.source.id === d.id || l.target.id === d.id) ? 0.95 : 0.15
-            )
-            .attr('stroke', l => 
-              (l.source.id === d.id || l.target.id === d.id) ? '#c0e4ff' : '#7aa9c4'
-            );
-        })
-        .on('mouseout', function(event, d) {
-          d3.select(this)
-            .transition()
-            .duration(200)
-            .attr('r', d.radius)
-            .attr('stroke-width', 1.2)
-            .attr('stroke-opacity', 0.5);
-
-          linkElements
-            .transition()
-            .duration(200)
-            .attr('stroke-opacity', 0.45)
-            .attr('stroke', '#7aa9c4');
-        });
-
-      // ----- ADD LABELS (small text on nodes) -----
-      const labelElements = labelGroup.selectAll('text')
-        .data(nodes)
-        .enter()
-        .append('text')
-        .text(d => d.label.charAt(0))  // just first letter, more clean
-        .attr('font-family', 'Segoe UI, sans-serif')
-        .attr('font-size', d => d.radius * 0.75)
-        .attr('font-weight', '600')
-        .attr('fill', '#ffffff')
-        .attr('text-anchor', 'middle')
-        .attr('dominant-baseline', 'central')
-        .attr('pointer-events', 'none')
-        .attr('opacity', 0.9);
-
-      // ----- PULSING ANIMATION (node radius oscillation) -----
-      // We'll use a separate animation loop that gently pulses each node's radius
-      // and applies it to circles and labels. This runs alongside simulation ticks.
-      let pulsePhase = 0;
-      
-      function pulseAnimation() {
-        pulsePhase += 0.015;
-        
-        // Update circle radii with a sine wave based on node id (to have different phases)
-        nodeElements
-          .attr('r', d => {
-            const base = d.radius;
-            // Each node pulses with its own phase shift using its index
-            const idx = nodes.indexOf(d);
-            const phase = pulsePhase + idx * 1.2;
-            const pulse = Math.sin(phase) * 1.8; // ±1.8px
-            return Math.max(6, base + pulse);
-          });
-
-        // Also update label sizes subtly and position (handled in tick)
-        labelElements
-          .attr('font-size', d => {
-            const idx = nodes.indexOf(d);
-            const phase = pulsePhase + idx * 1.2;
-            const pulse = Math.sin(phase) * 1.2;
-            return Math.max(8, d.radius * 0.75 + pulse);
-          });
-
-        // Link stroke-width can also breathe slightly
-        linkElements
-          .attr('stroke-width', l => {
-            const src = nodeMap.get(l.source.id || l.source);
-            const tgt = nodeMap.get(l.target.id || l.target);
-            const base = 1.2 + (src.radius + tgt.radius) * 0.05;
-            const idx = links.indexOf(l);
-            const phase = pulsePhase * 0.8 + idx * 0.9;
-            const pulse = Math.sin(phase) * 0.5;
-            return Math.max(0.8, base + pulse);
-          });
-
-        requestAnimationFrame(pulseAnimation);
-      }
-
-      // Start the pulse loop
-      pulseAnimation();
-
-      // ----- TICK FUNCTION: update positions of all elements -----
-      function ticked() {
-        // Update link positions
-        linkElements
-          .attr('x1', d => d.source.x)
-          .attr('y1', d => d.source.y)
-          .attr('x2', d => d.target.x)
-          .attr('y2', d => d.target.y);
-
-        // Update node positions
-        nodeElements
-          .attr('cx', d => d.x)
-          .attr('cy', d => d.y);
-
-        // Update label positions (center of node)
-        labelElements
-          .attr('x', d => d.x)
-          .attr('y', d => d.y);
-      }
-
-      // ----- DRAG HANDLERS (to let users interact) -----
-      function dragStarted(event, d) {
-        if (!event.active) simulation.alphaTarget(0.3).restart();
-        d.fx = d.x;
-        d.fy = d.y;
-      }
-
-      function dragged(event, d) {
-        d.fx = event.x;
-        d.fy = event.y;
-      }
-
-      function dragEnded(event, d) {
-        if (!event.active) simulation.alphaTarget(0);
-        d.fx = null;
-        d.fy = null;
-      }
-
-      // ----- ADD A SUBTLE BACKGROUND GRADIENT / VIGNETTE (decorative) -----
-      svg.append('circle')
-        .attr('cx', centerX)
-        .attr('cy', centerY)
-        .attr('r', 450)
-        .attr('fill', 'none')
-        .attr('stroke', 'rgba(80, 180, 255, 0.08)')
-        .attr('stroke-width', 1.5)
-        .attr('stroke-dasharray', '8 12')
-        .attr('pointer-events', 'none');
-
-      // Add some faint "stars" in the background
-      for (let i = 0; i < 40; i++) {
+      // Background decorative elements (stars / confetti feel)
+      const decorGroup = svg.append('g').attr('class', 'decor');
+      for (let i = 0; i < 60; i++) {
         const x = Math.random() * width;
         const y = Math.random() * height;
-        const r = Math.random() * 1.5 + 0.5;
-        svg.append('circle')
+        const r = Math.random() * 1.8 + 0.4;
+        decorGroup.append('circle')
           .attr('cx', x)
           .attr('cy', y)
           .attr('r', r)
           .attr('fill', '#b0e0ff')
-          .attr('opacity', Math.random() * 0.25 + 0.05)
+          .attr('opacity', Math.random() * 0.25 + 0.04)
           .attr('pointer-events', 'none');
       }
 
-      // ----- RESTART SIMULATION AFTER LOAD TO INITIATE ANIMATION -----
-      simulation.alpha(0.9).restart();
+      // Status message (loading / error)
+      const statusText = svg.append('text')
+        .attr('class', 'status')
+        .attr('x', width / 2)
+        .attr('y', height / 2)
+        .text('Loading recycling data...');
 
-      // Also, to keep the graph gently moving even after simulation cools down,
-      // we can set a timer to "warm" it up slightly, but not necessary — 
-      // the initial animation is smooth and interactive.
-      // However, we want a continuous subtle drift. Let's add a low-frequency alpha nudge every few seconds.
-      setInterval(() => {
-        if (simulation.alpha() < 0.1) {
-          simulation.alpha(0.12).restart();
+      // =========================================================
+      // LOAD CSV DATA
+      // =========================================================
+      d3.csv(CSV_FILE)
+        .then(function(data) {
+          // Parse and validate
+          if (!data || data.length === 0) {
+            throw new Error('CSV file is empty or missing.');
+          }
+
+          // Auto-detect column names (flexible)
+          const sample = data[0];
+          const keys = Object.keys(sample);
+          
+          // Try to find name and value columns
+          const nameKey = keys.find(k =>
+            /name|center|centre|facility|site|location/i.test(k)
+          ) || keys[0];
+          
+          const valueKey = keys.find(k =>
+            /value|amount|total|recycl|tons|kg|weight|score/i.test(k)
+          ) || keys[1] || keys[0];
+
+          // Process: parse numbers, filter valid rows
+          let processed = data
+            .map(d => ({
+              name: (d[nameKey] || 'Unknown').toString().trim(),
+              value: +d[valueKey] || 0
+            }))
+            .filter(d => d.name && !isNaN(d.value) && d.value > 0);
+
+          if (processed.length === 0) {
+            throw new Error(`No valid rows found. Detected columns: "${nameKey}", "${valueKey}".`);
+          }
+
+          // Sort descending and take top 10
+          processed.sort((a, b) => b.value - a.value);
+          const top10 = processed.slice(0, 10);
+
+          // Compute max value for scale
+          const maxValue = d3.max(top10, d => d.value);
+
+          // =========================================================
+          // SCALES
+          // =========================================================
+          const xScale = d3.scaleLinear()
+            .domain([0, maxValue * 1.15])
+            .range([0, innerWidth]);
+
+          const yScale = d3.scaleBand()
+            .domain(top10.map(d => d.name))
+            .range([0, innerHeight])
+            .padding(0.22);
+
+          const barHeight = yScale.bandwidth();
+
+          // =========================================================
+          // DRAW AXES / GRID
+          // =========================================================
+          const gridGroup = chartGroup.append('g').attr('class', 'grid');
+          
+          const xTicks = xScale.ticks(6);
+          xTicks.forEach(tick => {
+            gridGroup.append('line')
+              .attr('class', 'grid-line')
+              .attr('x1', xScale(tick))
+              .attr('x2', xScale(tick))
+              .attr('y1', -20)
+              .attr('y2', innerHeight + 10);
+            
+            gridGroup.append('text')
+              .attr('x', xScale(tick))
+              .attr('y', innerHeight + 35)
+              .attr('text-anchor', 'middle')
+              .attr('class', 'axis-label')
+              .text(d3.format('.2s')(tick));
+          });
+
+          // Axis title
+          chartGroup.append('text')
+            .attr('class', 'axis-label')
+            .attr('x', innerWidth / 2)
+            .attr('y', innerHeight + 55)
+            .attr('text-anchor', 'middle')
+            .text('TOTAL RECYCLED (units)');
+
+          // =========================================================
+          // DRAW BARS (with animation)
+          // =========================================================
+          const barsGroup = chartGroup.append('g').attr('class', 'bars');
+
+          top10.forEach((d, i) => {
+            const rank = i + 1;
+            const isMedal = rank <= 3;
+            const color = isMedal ? medalColors[rank].main : defaultColor;
+            const glowColor = isMedal ? medalColors[rank].glow : '#4cc9f0';
+
+            const barY = yScale(d.name);
+
+            // Create a group per bar for easier animation
+            const barGroup = barsGroup.append('g')
+              .attr('class', `bar-group bar-${rank}`)
+              .attr('transform', `translate(0, ${barY})`);
+
+            // Background track (subtle)
+            barGroup.append('rect')
+              .attr('x', 0)
+              .attr('y', 0)
+              .attr('width', innerWidth)
+              .attr('height', barHeight)
+              .attr('rx', barHeight / 2)
+              .attr('fill', 'rgba(80, 140, 180, 0.08)');
+
+            // Animated bar (starts at width 0)
+            const bar = barGroup.append('rect')
+              .attr('class', 'bar-rect')
+              .attr('x', 0)
+              .attr('y', 0)
+              .attr('width', 0)  // will animate
+              .attr('height', barHeight)
+              .attr('rx', barHeight / 2)
+              .attr('fill', color)
+              .attr('opacity', 0.92)
+              .attr('filter', 'url(#barGlow)')
+              .style('transform-origin', 'left center');
+
+            // Animate bar growth with stagger
+            const finalWidth = Math.max(8, xScale(d.value));
+            bar.transition()
+              .delay(300 + i * 130)
+              .duration(1100)
+              .ease(d3.easeCubicOut)
+              .attr('width', finalWidth);
+
+            // Pulsing glow overlay on the bar
+            const pulseRect = barGroup.append('rect')
+              .attr('x', 0)
+              .attr('y', 0)
+              .attr('width', 0)
+              .attr('height', barHeight)
+              .attr('rx', barHeight / 2)
+              .attr('fill', 'none')
+              .attr('stroke', glowColor)
+              .attr('stroke-width', 1.5)
+              .attr('opacity', 0);
+
+            pulseRect.transition()
+              .delay(300 + i * 130)
+              .duration(1100)
+              .ease(d3.easeCubicOut)
+              .attr('width', finalWidth);
+
+            // Set up a continuous pulse animation using requestAnimationFrame
+            // We'll store the final width on the element for the pulse loop
+            pulseRect.node().__finalWidth = finalWidth;
+            pulseRect.node().__baseOpacity = isMedal ? 0.7 : 0.4;
+            pulseRect.node().__delayOffset = i * 0.7;
+
+            // Rank badge circle (medal indicator)
+            const badgeRadius = barHeight * 0.38;
+            barGroup.append('circle')
+              .attr('cx', -badgeRadius - 12)
+              .attr('cy', barHeight / 2)
+              .attr('r', badgeRadius)
+              .attr('fill', isMedal ? medalColors[rank].main : 'rgba(120, 180, 220, 0.25)')
+              .attr('stroke', isMedal ? '#fff' : 'rgba(180, 220, 255, 0.4)')
+              .attr('stroke-width', isMedal ? 2 : 1);
+
+            // Rank number inside badge
+            barGroup.append('text')
+              .attr('class', 'rank-badge')
+              .attr('x', -badgeRadius - 12)
+              .attr('y', barHeight / 2)
+              .attr('font-size', barHeight * 0.42)
+              .attr('fill', isMedal ? '#0b1a2e' : '#a8d8ff')
+              .text(rank);
+
+            // Medal emoji for top 3 (placed to the right of the bar)
+            if (isMedal) {
+              barGroup.append('text')
+                .attr('x', finalWidth + 12)
+                .attr('y', barHeight / 2 + 2)
+                .attr('font-size', barHeight * 0.75)
+                .attr('dominant-baseline', 'central')
+                .attr('opacity', 0)
+                .text(medalColors[rank].label)
+                .transition()
+                .delay(1400 + i * 130)
+                .duration(400)
+                .attr('opacity', 1);
+            }
+
+            // Center name label (inside or left of bar)
+            barGroup.append('text')
+              .attr('class', 'bar-label')
+              .attr('x', -badgeRadius * 2 - 24)
+              .attr('y', barHeight / 2 + 1)
+              .attr('text-anchor', 'end')
+              .attr('dominant-baseline', 'central')
+              .text(d.name.length > 22 ? d.name.substring(0, 20) + '…' : d.name)
+              .style('opacity', 0)
+              .transition()
+              .delay(300 + i * 130)
+              .duration(600)
+              .style('opacity', 1);
+
+            // Value label (animated counting up)
+            const valueLabel = barGroup.append('text')
+              .attr('class', 'value-label')
+              .attr('x', finalWidth + (isMedal ? 45 : 12))  // shift if medal emoji present
+              .attr('y', barHeight / 2 + 1)
+              .attr('dominant-baseline', 'central')
+              .attr('text-anchor', 'start')
+              .attr('filter', 'url(#textGlow)')
+              .style('opacity', 0);
+
+            // Count-up animation
+            valueLabel.transition()
+              .delay(400 + i * 130)
+              .duration(1200)
+              .ease(d3.easeCubicOut)
+              .style('opacity', 1)
+              .tween('text', function() {
+                const interpolator = d3.interpolateNumber(0, d.value);
+                return function(t) {
+                  d3.select(this).text(d3.format(',.0f')(interpolator(t)));
+                };
+              });
+          });
+
+          // =========================================================
+          // CONTINUOUS PULSE ANIMATION LOOP
+          // =========================================================
+          let pulsePhase = 0;
+          function pulseLoop() {
+            pulsePhase += 0.03;
+
+            // Pulse the stroke rects
+            d3.selectAll('.bars rect[stroke]').each(function() {
+              const el = d3.select(this);
+              const finalW = this.__finalWidth || 0;
+              const baseOp = this.__baseOpacity || 0.4;
+              const offset = this.__delayOffset || 0;
+              const pulse = Math.sin(pulsePhase + offset) * 0.5 + 0.5;
+              el.attr('opacity', baseOp * pulse * 0.8 + 0.1);
+              el.attr('stroke-width', 1.2 + pulse * 1.2);
+            });
+
+            // Subtle background star twinkle
+            d3.selectAll('.decor circle').each(function() {
+              const el = d3.select(this);
+              const baseOp = +el.attr('data-base-op') || 0.1;
+              el.attr('opacity', baseOp + Math.sin(pulsePhase * 2 + Math.random()) * 0.05);
+            });
+
+            requestAnimationFrame(pulseLoop);
+          }
+
+          // Store base opacity for stars
+          d3.selectAll('.decor circle').each(function() {
+            d3.select(this).attr('data-base-op', this.getAttribute('opacity'));
+          });
+
+          // Start pulse loop
+          pulseLoop();
+
+          // Remove status message
+          statusText.remove();
+
+          // Add a celebratory title
+          chartGroup.append('text')
+            .attr('x', innerWidth / 2)
+            .attr('y', -55)
+            .attr('text-anchor', 'middle')
+            .attr('fill', '#c0e4ff')
+            .attr('font-size', '18px')
+            .attr('font-weight', '300')
+            .attr('letter-spacing', '4px')
+            .style('opacity', 0)
+            .text('★ TOP RECYCLERS ★')
+            .transition()
+            .delay(200)
+            .duration(800)
+            .style('opacity', 0.9);
+
+          // Subtle confetti-like particles falling
+          startConfetti();
+        })
+        .catch(function(error) {
+          console.error('Error loading CSV:', error);
+          statusText
+            .attr('fill', '#ff8080')
+            .text('⚠ Could not load "' + CSV_FILE + '". Check console for details.');
+          
+          // Add a helpful hint
+          svg.append('text')
+            .attr('x', width / 2)
+            .attr('y', height / 2 + 35)
+            .attr('class', 'status')
+            .attr('fill', '#a8d8ff')
+            .attr('font-size', '13px')
+            .attr('opacity', 0.7)
+            .text('Place recycling_centers.csv in the same folder as this HTML file.');
+        });
+
+      // =========================================================
+      // CONFETTI ANIMATION (medal ceremony feel)
+      // =========================================================
+      function startConfetti() {
+        const confettiGroup = svg.append('g')
+          .attr('class', 'confetti')
+          .attr('pointer-events', 'none');
+
+        const confettiColors = ['#ffd700', '#c0c0c0', '#cd7f32', '#4cc9f0', '#f72585', '#43aa8b'];
+
+        for (let i = 0; i < 40; i++) {
+          const startX = Math.random() * width;
+          const startY = -20 - Math.random() * 100;
+          const size = Math.random() * 6 + 3;
+          const color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+          const rotation = Math.random() * 360;
+          const duration = 4000 + Math.random() * 4000;
+          const delay = Math.random() * 3000;
+
+          const particle = confettiGroup.append('rect')
+            .attr('x', startX)
+            .attr('y', startY)
+            .attr('width', size)
+            .attr('height', size * 0.6)
+            .attr('fill', color)
+            .attr('opacity', 0.85)
+            .attr('rx', 1)
+            .attr('transform', `rotate(${rotation}, ${startX}, ${startY})`);
+
+          function fall() {
+            particle
+              .transition()
+              .delay(delay)
+              .duration(duration)
+              .ease(d3.easeLinear)
+              .attr('y', height + 40)
+              .attr('transform', `rotate(${rotation + 360 * 2}, ${startX}, ${startY + 600})`)
+              .attr('opacity', 0)
+              .on('end', function() {
+                // Reset and loop
+                particle
+                  .attr('y', startY - Math.random() * 200)
+                  .attr('opacity', 0.85)
+                  .transition()
+                  .duration(0)
+                  .on('end', fall);
+              });
+          }
+          fall();
         }
-      }, 4000);
-
+      }
     })();
   </script>
 </body>
